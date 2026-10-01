@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Día de los Hot Wheels | Familia Innova - PMO</title>
+    <!-- Three.js para renderizado 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0b1d3a 0%, #153e75 50%, #2272b5 100%);
+            color: #ffffff;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        /* UI Overlay */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 25px;
+        }
+        header {
+            text-align: center;
+            background: rgba(11, 29, 58, 0.85);
+            padding: 18px 30px;
+            border-radius: 20px;
+            border: 2px solid #64b5f6;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(100, 181, 246, 0.3);
+            max-width: 800px;
+            margin: 0 auto;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+        }
+        h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1.3rem;
+            color: #90caf9;
+            text-shadow: 3px 3px #0d47a1;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: #e3f2fd;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            background: #1976d2;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 6px;
+            border: 1px solid #90caf9;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        /* Instrucción flotante */
+        .instruction-box {
+            text-align: center;
+            background: rgba(13, 71, 161, 0.75);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid #42a5f5;
+            font-size: 0.95rem;
+            font-weight: 600;
+            max-width: 450px;
+            margin: 0 auto;
+            pointer-events: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: pulseGlow 2s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { border-color: #42a5f5; box-shadow: 0 0 10px rgba(66, 165, 245, 0.4); }
+            100% { border-color: #ffffff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.8); }
+        }
+        /* Modal / Tarjeta de Frase */
+        .car-modal {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(145deg, rgba(15, 37, 74, 0.95), rgba(21, 62, 117, 0.95));
+            border: 3px solid #90caf9;
+            border-radius: 20px;
+            padding: 20px 30px;
+            max-width: 550px;
+            width: 90%;
+            text-align: center;
+            pointer-events: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+        }
+        .car-modal.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .car-modal h3 {
+            color: #90caf9;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            font-family: 'Press Start 2P', monospace;
+        }
+        .car-modal p {
+            font-size: 1.05rem;
+            color: #ffffff;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        .close-btn {
+            background: #1976d2;
+            color: white;
+            border: 2px solid #90caf9;
+            padding: 8px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .close-btn:hover {
+            background: #1565c0;
+        }
+        /* Controles inferiores */
+        .controls-bar {
+            text-align: center;
+            pointer-events: auto;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .action-btn {
+            background: rgba(25, 118, 210, 0.9);
+            color: white;
+            border: 2px solid #90caf9;
+            padding: 10px 22px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover {
+            background: #1565c0;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="ui-overlay">
+        <header>
+            <h1>DÍA DE LOS HOT WELLS</h1>
+            <div class="subtitle">¡Flores azules, velocidad y mucho cariño para nuestra gran familia!</div>
+            <div class="badge">De parte del Área de PMO</div>
+        </header>
+
+        <div class="instruction-box">
+            🚗 ¡Haz clic en cualquiera de los 45 carritos en órbita 360° para descubrir una frase especial de PMO! 💙
+        </div>
+
+        <!-- Tarjeta Interactiva -->
+        <div class="car-modal" id="carModal">
+            <h3 id="modalTitle">Modelo Hot Wheels</h3>
+            <p id="modalMessage">Selecciona un carrito para leer el mensaje motivacional.</p>
+            <button class="close-btn" onclick="closeModal()">¡Continuar Recorrido!</button>
+        </div>
+
+        <div class="controls-bar">
+            <button class="action-btn" onclick="toggleRotation()">Pausar / Reanudar Giro</button>
+            <button class="action-btn" onclick="resetCamera()">Centrar Vista</button>
+        </div>
+    </div>
+
+    <script>
+        // Lista completa de los 45 Modelos Hot Wheels con sus frases de PMO Innova
+        const hotwheelsData = [
+            { name: "Bone Shaker Custom", quote: "¡Familia Innova! Así como este clásico de colección, construimos nuestros proyectos con bases sólidas, carácter y mucha pasión." },
+            { name: "Twin Mill Clásico", quote: "Doble motor, doble energía. Gracias al esfuerzo de todos, duplicamos nuestras metas cada día en PMO." },
+            { name: "Rodger Dodger Voxel", quote: "¡Acelera hacia tus sueños! Con constancia y equipo, no hay meta imposible de alcanzar en nuestra familia." },
+            { name: "Shark Bite Veloz", quote: "Muerde los retos con valentía y confianza. ¡Juntos superamos cualquier obstáculo corporativo!" },
+            { name: "Fast Fish Azul", quote: "Navegamos fluidamente hacia el éxito gracias al talento y dedicación de cada integrante de Innova." },
+            { name: "Night Shifter Edition", quote: "Incluso en los proyectos más complejos, nuestra unión brilla como flores azules en la noche." },
+            { name: "Slip Stream Pro", quote: "El camino se abre cuando trabajamos en equipo con empatía, compañerismo y alegría." },
+            { name: "Deora II Legendario", quote: "Diseñamos el futuro de nuestra comunidad con innovación, creatividad y un compromiso inquebrantable." },
+            { name: "Hyper Mite Ágil", quote: "Pequeños grandes detalles hacen que nuestro ambiente laboral sea extraordinario. ¡Feliz Día de los Hot Wells!" },
+            { name: "Muscle Bound Power", quote: "La fuerza de Innova radica en su gente. ¡Sigamos impulsando proyectos con garra y corazón!" },
+            { name: "Carbonator Racing", quote: "Brindemos por el compañerismo y el éxito continuo de toda la familia de trabajo." },
+            { name: "Rivited Steampunk", quote: "Cada engranaje en PMO importa. Gracias por ser pieza fundamental en nuestro engranaje diario." },
+            { name: "Bull Whip Turbo", quote: "Impetuoso y decidido: así es el espíritu de nuestra gran familia al afrontar cada reto." },
+            { name: "Spectyte Futuristic", quote: "Visualicemos un horizonte lleno de éxitos compartidos y metas cumplidas con excelencia." },
+            { name: "Power Pistons", quote: "¡Paso firme y motores encendidos! El mejor equipo es el que forma parte de Innova." },
+            { name: "Roller Toaster", quote: "Dinamismo y diversión en cada tarea. ¡Gracias por ponerle tanta buena vibra a la oficina!" },
+            { name: "Scion xB Custom", quote: "Estilo y funcionalidad van de la mano en cada iniciativa que lidera nuestra área." },
+            { name: "Time Tracker", quote: "Cada segundo cuenta cuando se trabaja con propósito, armonía y dedicación familiar." },
+            { name: "Velocita Aerodinámica", quote: "Rendimiento óptimo y velocidad con rumbo fijo hacia la excelencia institucional." },
+            { name: "Doom Scoop", quote: "Quitando barreras y allanando caminos para que todos brillen con luz propia." },
+            { name: "Grooveulator", quote: "¡A darle ritmo a la semana! El buen ambiente laboral es nuestra mejor carta de presentación." },
+            { name: "Mad Fast V8", quote: "Pasión a toda potencia para superar las expectativas de toda la familia Innova." },
+            { name: "Phastasm Retro", quote: "Un clásico homenaje al esfuerzo compartido. ¡Feliz día a todos los enamorados de los autos y las flores azules!" },
+            { name: "Quick D-I-Y", quote: "Manos a la obra: con creatividad y talento resolvemos cualquier desafío con una sonrisa." },
+            { name: "Shadow Jet", quote: "Elevando los estándares de calidad con elegancia, precisión y trabajo en equipo." },
+            { name: "Synkro Drift", quote: "Sincronización perfecta: cuando remamos juntos, llegamos siempre a la meta deseada." },
+            { name: "Tribal Ride", quote: "Tradición, unión y futuro brillante para toda la gran familia de trabajo." },
+            { name: "Vader Special", quote: "Liderazgo inspirador y firmeza para guiar con éxito cada nuevo proyecto." },
+            { name: "Zoticus Concept", quote: "Vanguardia y diseño pensado por y para el bienestar de nuestra comunidad." },
+            { name: "Air Attack", quote: "Despega alto, confía en tus capacidades y recuerda que cuentas con el respaldo de PMO." },
+            { name: "Blitz Speeder", quote: "Agilidad y rapidez en la gestión diaria para hacer la vida más fácil en Innova." },
+            { name: "Cyber Racer", quote: "Innovación digital y mentalidad abierta para transformar nuestro entorno laboral." },
+            { name: "Desert Strike", quote: "Resiliencia ante cualquier reto. ¡Los grandes equipos crecen en la dificultad!" },
+            { name: "Electro Bolt", quote: "¡Energía pura y contagiosa! Gracias por iluminar las jornadas de trabajo." },
+            { name: "Fire Storm", quote: "Pasión desbordante que enciende el motor de nuestra creatividad institucional." },
+            { name: "Gravity Defier", quote: "Rompiendo esquemas y superando la gravedad de lo ordinario para alcanzar lo extraordinario." },
+            { name: "Helix Runner", quote: "ADN de campeones: la excelencia corre por las venas de la familia Innova." },
+            { name: "Iron Phantom", quote: "Inquebrantables, fuertes y unidos frente a cualquier meta u objetivo propuesto." },
+            { name: "Jungle Explorer", quote: "Explorando nuevas rutas de mejora continua y optimización en cada proceso." },
+            { name: "Knight Blazer", quote: "Honor, compromiso y caballerosidad en cada interacción con nuestros compañeros." },
+            { name: "Lunar Rover", quote: "¡Apuntando a las estrellas! Juntos no hay techo que limite nuestras ambiciones." },
+            { name: "Matrix Cruiser", quote: "Orden, estructura y claridad para conectar todas las piezas de nuestros proyectos." },
+            { name: "Neon Pulse", quote: "Vibrantes, alegres y llenos de vida: así celebramos este Día de los Hot Wells." },
+            { name: "Omega Force", quote: "Fuerza unificada: el cierre perfecto para un equipo que da siempre lo mejor." },
+            { name: "Zenith Master", quote: "En la cima del esfuerzo y la dedicación. ¡Feliz Día de los Hot Wells a toda la familia Innova!" }
+        ];
+
+        // Escena, Cámara y Renderizador 3D
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0b1d3a, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 18);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        // Iluminación
+        const ambientLight = new THREE.AmbientLight(0xddeeff, 1.2);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(10, 25, 15);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const blueLight = new THREE.PointLight(0x42a5f5, 3, 30);
+        blueLight.position.set(0, 2, 0);
+        scene.add(blueLight);
+
+        // Grupo principal del escenario
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+
+        // --- CONSTRUCTOR DE CARRO HOT WHEELS ESTILO MINECRAFT/VOXEL ---
+        function createVoxelCar(primaryColorHex, accentColorHex) {
+            const carGroup = new THREE.Group();
+            const matBody = new THREE.MeshLambertMaterial({ color: primaryColorHex });
+            const matAccent = new THREE.MeshLambertMaterial({ color: accentColorHex });
+            const matGlass = new THREE.MeshLambertMaterial({ color: 0x90caf9, transparent: true, opacity: 0.8 });
+            const matWheel = new THREE.MeshLambertMaterial({ color: 0x111111 });
+            const matRim = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+            // Chasis / Base
+            const baseGeo = new THREE.BoxGeometry(1.6, 0.3, 3.2);
+            const baseMesh = new THREE.Mesh(baseGeo, matBody);
+            baseMesh.position.y = 0.3;
+            carGroup.add(baseMesh);
+
+            // Cabina (Estilo Bloque Minecraft)
+            const cabGeo = new THREE.BoxGeometry(1.2, 0.6, 1.6);
+            const cabMesh = new THREE.Mesh(cabGeo, matGlass);
+            cabMesh.position.set(0, 0.75, -0.1);
+            carGroup.add(cabMesh);
+
+            // Detalles y Alerón
+            const spoilerGeo = new THREE.BoxGeometry(1.5, 0.15, 0.5);
+            const spoilerMesh = new THREE.Mesh(spoilerGeo, matAccent);
+            spoilerMesh.position.set(0, 0.95, -1.4);
+            carGroup.add(spoilerMesh);
+
+            // Ruedas (4)
+            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 8);
+            wheelGeo.rotateZ(Math.PI / 2);
+
+            const wheelPositions = [
+                [-0.9, 0.3, 1.0], [0.9, 0.3, 1.0],
+                [-0.9, 0.3, -1.0], [0.9, 0.3, -1.0]
+            ];
+
+            wheelPositions.forEach(pos => {
+                const wMesh = new THREE.Mesh(wheelGeo, matWheel);
+                wMesh.position.set(...pos);
+                carGroup.add(wMesh);
+            });
+
+            carGroup.scale.set(0.65, 0.65, 0.65);
+            return carGroup;
+        }
+
+        // --- CONSTRUCTOR DEL CAPIBARA ANIMADO ESTILO MINECRAFT ---
+        function createCapybara() {
+            const capyGroup = new THREE.Group();
+            const matSkin = new THREE.MeshLambertMaterial({ color: 0x8d5524 }); // Marrón capibara
+            const matSnout = new THREE.MeshLambertMaterial({ color: 0x6e411b });
+            const matEye = new THREE.MeshLambertMaterial({ color: 0x111111 });
+            const matFlowerBlue = new THREE.MeshLambertMaterial({ color: 0x2196f3 });
+            const matFlowerCenter = new THREE.MeshLambertMaterial({ color: 0xffeb3b });
+            const matCarBody = new THREE.MeshLambertMaterial({ color: 0xdc2626 }); // Rojo Hot Wheels clásico
+
+            // Cuerpo
+            const bodyGeo = new THREE.BoxGeometry(2.2, 2.0, 3.6);
+            const body = new THREE.Mesh(bodyGeo, matSkin);
+            body.position.y = 1.4;
+            capyGroup.add(body);
+
+            // Cabeza
+            const headGeo = new THREE.BoxGeometry(1.8, 1.6, 1.8);
+            const head = new THREE.Mesh(headGeo, matSkin);
+            head.position.set(0, 2.2, 2.0);
+            capyGroup.add(head);
+
+            // Hocico
+            const snoutGeo = new THREE.BoxGeometry(1.4, 0.9, 1.0);
+            const snout = new THREE.Mesh(snoutGeo, matSnout);
+            snout.position.set(0, 1.9, 3.0);
+            capyGroup.add(snout);
+
+            // Ojos
+            const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            const eye1 = new THREE.Mesh(eyeGeo, matEye);
+            eye1.position.set(-0.95, 2.5, 2.4);
+            const eye2 = eye1.clone();
+            eye2.position.x = 0.95;
+            capyGroup.add(eye1, eye2);
+
+            // Patas (4)
+            const legGeo = new THREE.BoxGeometry(0.5, 1.0, 0.5);
+            const legCoords = [
+                [-0.8, 0.5, 1.2], [0.8, 0.5, 1.2],
+                [-0.8, 0.5, -1.2], [0.8, 0.5, -1.2]
+            ];
+            legCoords.forEach(pos => {
+                const leg = new THREE.Mesh(legGeo, matSkin);
+                leg.position.set(...pos);
+                capyGroup.add(leg);
+            });
+
+            // Ramo de Flores Azules en las manos
+            const flowerGroup = new THREE.Group();
+            for(let i=0; i<3; i++) {
+                const stem = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), new THREE.MeshLambertMaterial({color: 0x4caf50}));
+                stem.position.set((i-1)*0.3, 0, 0);
+                stem.rotation.z = (i-1)*0.2;
+                flowerGroup.add(stem);
+
+                const petal = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.1), matFlowerBlue);
+                petal.position.set((i-1)*0.3, 0.6, 0);
+                flowerGroup.add(petal);
+
+                const center = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.15), matFlowerCenter);
+                center.position.set((i-1)*0.3, 0.6, 0.05);
+                flowerGroup.add(center);
+            }
+            flowerGroup.position.set(-0.9, 1.6, 2.5);
+            flowerGroup.rotation.z = -0.3;
+            capyGroup.add(flowerGroup);
+
+            // Carrito Hot Wheels en la otra mano
+            const miniCar = createVoxelCar(0xdc2626, 0xffeb3b);
+            miniCar.scale.set(0.35, 0.35, 0.35);
+            miniCar.position.set(0.9, 1.6, 2.5);
+            miniCar.rotation.y = Math.PI / 4;
+            capyGroup.add(miniCar);
+
+            capyGroup.scale.set(1.2, 1.2, 1.2);
+            capyGroup.position.y = -0.5;
+            scene.add(capyGroup);
+
+            return capyGroup;
+        }
+
+        const capybara = createCapybara();
+
+        // --- CREACIÓN DE LA ÓRBITA 360° CON 45 CARROS ---
+        const orbitGroup = new THREE.Group();
+        scene.add(orbitGroup);
+
+        const interactiveCars = [];
+        const numCars = 45;
+        const colors = [0x1e88e5, 0x00acc1, 0xff5252, 0xffeb3b, 0x9c27b0, 0x4caf50, 0xff9800, 0xe91e63, 0x00bcd4];
+
+        for (let i = 0; i < numCars; i++) {
+            const angle = (i / numCars) * Math.PI * 2;
+            // Distribuir en 3 niveles de altura orbital para mayor dinamismo 360
+            const radius = 7.5 + (i % 3) * 2.2;
+            const yOffset = ((i % 3) - 1) * 2.0;
+
+            const primaryCol = colors[i % colors.length];
+            const accentCol = colors[(i + 3) % colors.length];
+
+            const car = createVoxelCar(primaryCol, accentCol);
+            car.userData = {
+                id: i,
+                name: hotwheelsData[i].name,
+                quote: hotwheelsData[i].quote
+            };
+
+            // Posición inicial en el círculo
+            car.position.x = Math.cos(angle) * radius;
+            car.position.z = Math.sin(angle) * radius;
+            car.position.y = yOffset;
+
+            // Orientar hacia el frente del sentido del giro
+            car.rotation.y = -angle + Math.PI / 2;
+
+            orbitGroup.add(car);
+            interactiveCars.push(car);
+        }
+
+        // --- INTERACTIVIDAD RAYCASTER (CLICS EN LOS CARROS) ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('click', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(orbitGroup.children, true);
+
+            if (intersects.length > 0) {
+                let hitObject = intersects[0].object;
+                // Buscar el grupo raíz del carro
+                while (hitObject.parent && hitObject.parent !== orbitGroup) {
+                    hitObject = hitObject.parent;
+                }
+
+                if (hitObject.userData && hitObject.userData.name) {
+                    showCarModal(hitObject.userData.name, hitObject.userData.quote);
+                }
+            }
+        });
+
+        function showCarModal(title, message) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('carModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('carModal').classList.remove('active');
+        }
+
+        // --- CONTROLES DE CÁMARA 360 Y ROTACIÓN ---
+        let isRotating = true;
+        function toggleRotation() {
+            isRotating = !isRotating;
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 5, 18);
+            camera.lookAt(0, 0, 0);
+        }
+
+        // Soporte para rotar la escena arrastrando el mouse
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        window.addEventListener('mousedown', (e) => {
+            if(e.clientY < window.innerHeight - 150) { // Evitar conflictos con la tarjeta modal inferior
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            orbitGroup.rotation.y += deltaX * 0.008;
+            capybara.rotation.y += deltaX * 0.005;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Soporte Táctil para Celulares
+        window.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 1) {
+                isDragging = true;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            const deltaX = e.touches[0].clientX - previousMousePosition.x;
+            orbitGroup.rotation.y += deltaX * 0.008;
+            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        // Ajuste al redimensionar ventana
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- ANIMACIÓN PRINCIPAL (LOOP) ---
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // Giro automático constante en 360°
+            if (isRotating) {
+                orbitGroup.rotation.y += 0.003;
+            }
+
+            // Animación flotante suave del capibara central
+            capybara.position.y = -0.5 + Math.sin(elapsedTime * 3) * 0.15;
+            capybara.rotation.y = Math.sin(elapsedTime * 1.5) * 0.1;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
